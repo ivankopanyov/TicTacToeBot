@@ -1,6 +1,8 @@
+from os import getenv
+
+from dotenv import load_dotenv
 from telegram.error import InvalidToken
 
-from config import Config
 from db import DataBase
 from tictactoebot import TicTacToeBot
 from tictactoecontroller import TicTacToeController
@@ -14,9 +16,12 @@ def main() -> None:
     """
     Точка входа в приложение.
     """
+    
+    load_dotenv()
+    TOKEN = getenv('TOKEN')
 
-    if Config.token() == None:
-        print("Укажите токен телеграм-бота в файле 'bot.conf'")
+    if TOKEN == None:
+        print("Укажите токен телеграм-бота в файле '.env'")
         print("Завершение работы приложения...")
         return
 
@@ -30,7 +35,7 @@ def main() -> None:
     users_controller = UsersController(users_repository)
 
     try:
-        bot = TicTacToeBot(Config.token(), tictactoe_controller, users_controller)
+        bot = TicTacToeBot(TOKEN, tictactoe_controller, users_controller)
         bot.start()
     except InvalidToken:
         print("Неверный токен!")
