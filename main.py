@@ -1,11 +1,13 @@
-from db import DataBase
-from tictactoerepository import TicTacToeRepository
-from usersrepository import UsersRepository
-from tictactoecontroller import TicTacToeController
-from userscontroller import UsersController
-from tictactoebot import TicTacToeBot
 from telegram.error import InvalidToken
+
 from config import Config
+from db import DataBase
+from tictactoebot import TicTacToeBot
+from tictactoecontroller import TicTacToeController
+from tictactoerepository import TicTacToeRepository
+from userscontroller import UsersController
+from usersrepository import UsersRepository
+
 
 def main() -> None:
 

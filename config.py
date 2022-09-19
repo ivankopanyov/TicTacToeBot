@@ -1,5 +1,6 @@
 from os.path import exists
 
+
 class Config:
 
     """

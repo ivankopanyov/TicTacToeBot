@@ -1,6 +1,7 @@
 from repository import Repository
 from tictactoe import TicTacToe
 
+
 class TicTacToeRepository(Repository):
 
     """

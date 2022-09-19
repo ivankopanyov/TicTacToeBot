@@ -1,5 +1,6 @@
-from tictactoerepository import TicTacToeRepository
 from tictactoe import TicTacToe
+from tictactoerepository import TicTacToeRepository
+
 
 class TicTacToeController():
 

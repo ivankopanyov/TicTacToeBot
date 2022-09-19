@@ -1,5 +1,6 @@
-from usersrepository import UsersRepository
 from user import User
+from usersrepository import UsersRepository
+
 
 class UsersController():
 

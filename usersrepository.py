@@ -1,6 +1,7 @@
 from repository import Repository
 from user import User
 
+
 class UsersRepository(Repository):
 
     """

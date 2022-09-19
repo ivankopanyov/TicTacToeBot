@@ -1,9 +1,11 @@
+from telegram import ReplyKeyboardMarkup, Update
+from telegram.ext import CommandHandler, ContextTypes, MessageHandler, filters
+
 from bot import Bot
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import CommandHandler, MessageHandler, ContextTypes, filters
+from tictactoe import TicTacToe
 from tictactoecontroller import TicTacToeController
 from userscontroller import UsersController
-from tictactoe import TicTacToe
+
 
 class TicTacToeBot(Bot):
 

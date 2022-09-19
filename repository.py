@@ -1,5 +1,6 @@
-from sqlite3 import Cursor
 from abc import ABC, abstractmethod
+from sqlite3 import Cursor
+
 
 class Repository(ABC):
 

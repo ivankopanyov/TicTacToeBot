@@ -1,5 +1,7 @@
-from telegram.ext import ApplicationBuilder, Application
 from abc import ABC, abstractmethod
+
+from telegram.ext import Application, ApplicationBuilder
+
 
 class Bot(ABC):
 
