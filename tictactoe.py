@@ -1,3 +1,4 @@
+from pickle import EMPTY_DICT
 from random import randint
 
 
@@ -19,16 +20,10 @@ class TicTacToe:
     Константа, хранящая символ нолика.
     """
 
-    NUMBERS = '¹²³⁴⁵⁶⁷⁸⁹'
+    EMPTY = ' '
 
     """
-    Константа, хранящая строку с номерами клеток.
-    """
-
-    LINES = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]]
-
-    """
-    Список, хранящий линии для проверки окончания игры.
+    Константа, хранящая символ пустой клетки.
     """
 
     WIN = 'win'
@@ -79,14 +74,63 @@ class TicTacToe:
     Символ игрока.
     """
 
-    def __init__(self, id: str, field: list[str] | None = None, sign: str | None = None) -> None:
+    __side: int
+
+    """
+    Длина стороны игрового поля
+    """
+
+    __lines: list[list[int]]
+
+    """
+    Список, хранящий линии для проверки окончания игры.
+    """
+
+    __win_line: int = 3
+
+    """
+    Колличество клеток для победы.
+    """
+
+    def __init__(self, id: str, field: list[str] | None = None, sign: str | None = None, side: int = 3) -> None:
 
         """
         Инициализация объекта класса игры.
         """
 
         self.__id = id
-        self.__field = field if not field is None else list(TicTacToe.NUMBERS)
+        self.__field = field if not field is None else [TicTacToe.EMPTY] * side * side
+        self.__side = int(len(self.__field) ** 0.5)
+
+        if self.__win_line < 3:
+            self.__win_line = 3
+        elif self.__win_line > self.__side:
+            self.__win_line = self.__side
+        
+        self.__lines = []
+
+        for i in range(0, len(self.__field), self.__side):
+            self.__lines.append(list(range(i, i + self.__side)))
+
+        for i in range(0, self.__side):
+            self.__lines.append(list(range(i, len(self.__field), self.__side)))
+
+        starts = [i for i in range(self.__side - self.__win_line + 1)]
+        for i in range(len(starts)):
+            self.__lines.append([j for j in range(starts[i], len(self.__field), self.__side + 1)][0:self.__side - i])
+            
+        starts = [i for i in list(range(self.__side, len(self.__field), self.__side))[0:self.__side - self.__win_line]]
+        for i in range(len(starts)):
+            self.__lines.append([j for j in range(starts[i], len(self.__field), self.__side + 1)][0:self.__side - i])
+            
+        starts = [i for i in range(self.__win_line - 1, self.__side)]
+        for i in range(len(starts)):
+            self.__lines.append([j for j in range(starts[i], len(self.__field), self.__side - 1)][0:self.__side + i - (self.__side - self.__win_line)])
+
+        starts = [i for i in list(range(self.__side - 1, len(self.__field), self.__side))[1:self.__side - (self.__win_line - 1)]]
+        for i in range(len(starts)):
+            self.__lines.append([j for j in range(starts[i], len(self.__field), self.__side - 1)][0:self.__side - i])
+            
         
         if sign is None:
             self.__sign = TicTacToe.CROSS if randint(0, 1) == 1 else TicTacToe.ZERO
@@ -94,6 +138,7 @@ class TicTacToe:
                 self.__bot_move()
         else:
             self.__sign = sign
+
 
     def get_id(self) -> str:
 
@@ -103,6 +148,7 @@ class TicTacToe:
 
         return self.__id
 
+
     def get_field(self) -> list[str]:
 
         """
@@ -110,6 +156,7 @@ class TicTacToe:
         """
 
         return self.__field.copy()
+
 
     def get_state(self) -> str:
 
@@ -120,6 +167,7 @@ class TicTacToe:
         result = self.__check()
         return TicTacToe.STOP if result != TicTacToe.NONE else TicTacToe.NONE
 
+
     def get_sign(self) -> str:
 
         """
@@ -127,6 +175,7 @@ class TicTacToe:
         """
 
         return self.__sign
+        
 
     def move(self, index: int) -> tuple([list[str], str]):
 
@@ -138,7 +187,7 @@ class TicTacToe:
         if result != TicTacToe.NONE:
             return (self.__field, TicTacToe.STOP)
 
-        if self.__field[index] == TicTacToe.CROSS or self.__field[index] == TicTacToe.ZERO:
+        if not index in range(len(self.__field)) or self.__field[index] != TicTacToe.EMPTY:
             return (self.__field, TicTacToe.NONE)
 
         self.__field[index] = self.__sign
@@ -157,6 +206,7 @@ class TicTacToe:
 
         return (self.__field, TicTacToe.NONE)
 
+
     def __bot_move(self) -> None:
 
         """
@@ -164,45 +214,58 @@ class TicTacToe:
         """
 
         bot_sign = TicTacToe.CROSS if self.__sign != TicTacToe.CROSS else TicTacToe.ZERO
-        moves = [(self.__sign, 2), (bot_sign, 2), (self.__sign, 1), (bot_sign, 1)]
+
+        moves = []
+        for i in range(1, self.__win_line):
+            moves.insert(0, (self.__sign, i))
+            moves.insert(0, (bot_sign, i))
+
         for move in moves:
             result = self.__find_cell(move[0], move[1])
-            if result != None:
-                self.__field[result] = bot_sign
+            if len(result) != 0:
+                self.__field[result[randint(0, len(result) - 1)]] = bot_sign
                 return
 
-        self.__field[randint(0, len(self.__field) - 1)] = bot_sign
+        while True:
+            num = randint(0, len(self.__field) - 1)
+            if self.__field[num] == TicTacToe.EMPTY:
+                self.__field[num] = bot_sign
+                return
 
-    def __find_cell(self, sign, sign_count) -> int:
+
+    def __find_cell(self, sign: str, sign_count: int) -> list[int]:
 
         """
         Поиск наилучшего хода для бота.
         """
 
+        other = TicTacToe.CROSS if sign == TicTacToe.ZERO else TicTacToe.ZERO
+
         empties = []
-        for line in TicTacToe.LINES:
-            counter = 0
-            temp_empties = []
-            for i in line:
-                if self.__field[i] != TicTacToe.CROSS and self.__field[i] != TicTacToe.ZERO:
-                    temp_empties.append(i)
-                if self.__field[i] == sign:
-                    counter += 1
-            if counter >= sign_count and temp_empties != None:
-                empties += temp_empties
-        return None if len(empties) == 0 else empties[randint(0, len(empties) - 1)]
+        for line in self.__lines:
+            for i in range(len(line) - (self.__win_line - 1)):
+                cells = line[i:i+3]
+                temp = list(map(lambda j: self.__field[j], cells))
+                if not other in temp and len(list(filter(lambda k: k == sign, temp))) == sign_count:
+                    empties += list(filter(lambda l: self.__field[l] == TicTacToe.EMPTY, cells))
+
+        return empties
+
 
     def __check(self) -> str:
 
         """
         Метод проверки текущего состояния игры.
         """
+        
+        for line in self.__lines:
+            for i in range(len(line) - (self.__win_line - 1)):
+                temp = list(set(map(lambda j: self.__field[j], line[i:i+self.__win_line])))
+                if len(temp) == 1 and temp[0] != TicTacToe.EMPTY:
+                    return TicTacToe.STOP
 
-        for line in TicTacToe.LINES:
-            if len(set([self.__field[i] for i in line])) == 1:
-                return TicTacToe.STOP
-
-        if len(set(self.__field)) == 2:
+        temp = list(set(self.__field))
+        if len(temp) == 2 and not TicTacToe.EMPTY in temp:
             return TicTacToe.DRAW
 
         return TicTacToe.NONE
