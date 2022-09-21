@@ -28,10 +28,10 @@ def main() -> None:
     db = DataBase('tictactoe.db')
     cursor = db.connect()
 
-    tictactoe_repository = TicTacToeRepository(cursor, 'tictactoe', ['id', 'field', 'sign'])
+    tictactoe_repository = TicTacToeRepository(cursor)
     tictactoe_controller = TicTacToeController(tictactoe_repository)
 
-    users_repository = UsersRepository(cursor, 'users', ['id'])
+    users_repository = UsersRepository(cursor)
     users_controller = UsersController(users_repository)
 
     try:

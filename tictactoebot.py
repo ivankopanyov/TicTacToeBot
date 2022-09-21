@@ -78,7 +78,7 @@ class TicTacToeBot(Bot):
         id = update.effective_user.id
         name = update.effective_user.first_name
 
-        if not self.__users_controller.check(id):
+        if not self.__users_controller.exists(id):
             message = f'{name}, добро пожаловать! '
             self.__users_controller.add(id)
         else:
@@ -122,15 +122,9 @@ class TicTacToeBot(Bot):
 
         id = update.effective_user.id
         name = update.effective_user.first_name
-        result = self.__tictactoe_controller.get(id)
-        field = None if result is None else result[0]
         nums = list(map(int, update.message.text.split(' x ')))
 
-        if field != None:
-            sign = self.__tictactoe_controller.get_sign(id)
-            message = f'Неизвестная команда! {self.__get_name(name, "с")}ейчас Ваш ход! Вы ходите {sign}!'
-            reply_markup = self.__get_keyboard(field)
-        elif nums[0] != nums[1]:
+        if nums[0] != nums[1]:
             message = f'Неизвестная команда! {self.__get_name(name, "в")}ыберите размер поля!'
             reply_markup = self.__get_size_keyboard()
         else:

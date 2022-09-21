@@ -22,7 +22,7 @@ class UsersController():
 
         self.__repository = repository
 
-    def add(self, id: str) -> None:
+    def add(self, id: int) -> None:
 
         """
         Метод добавления пользователя в базу данных.
@@ -31,10 +31,10 @@ class UsersController():
         user = User(id)
         self.__repository.create(user)
 
-    def check(self, id: str) -> bool:
+    def exists(self, id: int) -> bool:
 
         """
         Метод проверки наличия пользователя в базе данных.
         """
 
-        return not self.__repository.read(id) is None
+        return self.__repository.exists(id)

@@ -4,13 +4,13 @@ class User:
     Класс, описывающий пользователя.
     """
 
-    __id: str 
+    __id: int 
     
     """
     Идентификатор пользователя
     """
 
-    def __init__(self, id: str) -> None:
+    def __init__(self, id: int) -> None:
 
         """
         Инициализация объекта пользователя.
@@ -20,7 +20,7 @@ class User:
         self.__id = id
 
 
-    def get_id(self) -> str:
+    def get_id(self) -> int:
 
         """
         Метод, возвращающий идентификатор пользователя

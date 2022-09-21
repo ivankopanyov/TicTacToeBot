@@ -9,23 +9,34 @@ class UsersRepository(Repository):
     состояния объектов пользователей в таблицу.
     """
 
+    def _create_table(self) -> None:
+
+        """
+        Метод создания таблицы для хранения состаяния объектов пользователя.
+        """
+
+        self._cursor.execute("""CREATE TABLE IF NOT EXISTS users (id INTEGER)""")
+
+
     def create(self, user: User) -> None:
 
         """
         Метод создания новой записи состояния объекта пользователя в таблице.
         """
 
-        self._cursor.execute(f"INSERT INTO {self._table} VALUES ('{user.get_id()}')")
+        self._cursor.execute("""INSERT INTO users VALUES (?)""", (user.get_id(),))
 
-    def read(self, id: str) -> User | None:
+
+    def read(self, id: int) -> User | None:
 
         """
         Метод чтения записи состояния объекта пользователя из таблицы.
         """
 
-        res = self._cursor.execute(f"SELECT * FROM {self._table} WHERE id='{id}'")
-        result = res.fetchall()
-        return None if len(result) == 0 else User(result[0][0])
+        res = self._cursor.execute("""SELECT * FROM users WHERE id = ?""", (id,))
+        result = res.fetchone()
+        return None if result is None else User(result[0])
+
 
     def update(self, user: User) -> None:
 
@@ -36,7 +47,8 @@ class UsersRepository(Repository):
 
         pass
 
-    def delete(self, id: str) -> None:
+
+    def delete(self, id: int) -> None:
 
         """
         Метод удаления записи состояния объекта пользователя из таблицы.
@@ -44,3 +56,13 @@ class UsersRepository(Repository):
         """
 
         pass
+    
+
+    def exists(self, id: int) -> bool:
+
+        """
+        Метод проверки наличия записи пользователя в таблице.
+        """
+
+        res = self._cursor.execute("""SELECT * FROM users WHERE id = ?""", (id,))
+        return not res.fetchone() is None

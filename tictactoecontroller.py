@@ -23,7 +23,7 @@ class TicTacToeController():
         self.__repository = repository
 
 
-    def new(self, id: str, size: int) -> list[str]:
+    def new(self, id: int, size: int) -> list[str]:
 
         """
         Метод создания новой игры.
@@ -35,7 +35,7 @@ class TicTacToeController():
         return tictactoe.get_field()
 
 
-    def get(self, id: str) -> tuple([list[str], str]):
+    def get(self, id: int) -> tuple([list[str], str]):
 
         """
         Метод, возвращающий текущее состояние и поле игры.
@@ -43,11 +43,11 @@ class TicTacToeController():
 
         tictactoe = self.__repository.read(id)
         if tictactoe is None:
-            return None #(self.new(id), TicTacToe.NONE)
+            return None
         return (tictactoe.get_field(), tictactoe.get_state())
 
 
-    def move(self, id: str, index: int) -> tuple([list[str], str]):
+    def move(self, id: int, index: int) -> tuple([list[str], str]):
 
         """
         Метод хода игрока.
@@ -55,13 +55,13 @@ class TicTacToeController():
 
         tictactoe = self.__repository.read(id)
         if tictactoe is None:
-            return None #(self.new(id), TicTacToe.NONE)
+            return None
         result = tictactoe.move(index - 1)
         self.__repository.update(tictactoe)
         return result
 
 
-    def get_sign(self, id: str) -> str | None:
+    def get_sign(self, id: int) -> str | None:
 
         """
         Метод, возвращающий символ игрока.
@@ -71,7 +71,7 @@ class TicTacToeController():
         return None if tictactoe is None else tictactoe.get_sign()
 
 
-    def delete(self, id: str) -> None:
+    def delete(self, id: int) -> None:
 
         """
         Метод удаления игры.

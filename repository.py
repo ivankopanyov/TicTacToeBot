@@ -14,31 +14,25 @@ class Repository(ABC):
     Объект курсора модуля sqlite3.
     """
 
-    _table: str
-
-    """
-    Имя таблицы, хранящей состояние объектов репозитория.
-    """
-
-    def __init__(self, cursor: Cursor, table: str, columns: list[str]) -> None:
+    def __init__(self, cursor: Cursor) -> None:
 
         """
         Инициализация объекта репозитория.
         """
 
         self._cursor = cursor
-        self._table = table
-        self._create_table(columns)
+        self._create_table()
 
-    def _create_table(self, columns: list[str]) -> None:
+
+    @abstractmethod
+    def _create_table(self) -> None:
 
         """
-        Метод создания таблицы для хранения состаяния объектов репозитория.
+        Абстрактный метод создания таблицы для хранения состаяния объектов репозитория.
         """
 
-        res = self._cursor.execute(f"SELECT name FROM sqlite_master WHERE name='{self._table}'")
-        if res.fetchone() is None:
-            self._cursor.execute(f"CREATE TABLE {self._table}({', '.join(columns)})")
+        pass
+
 
     @abstractmethod
     def create(self, obj: object) -> None:
@@ -49,14 +43,16 @@ class Repository(ABC):
 
         pass
 
+
     @abstractmethod
-    def read(self, id: str) -> object | None:
+    def read(self, id: int) -> object | None:
 
         """
         Абстрактный метод чтения записи в таблицы.
         """
 
         pass
+
 
     @abstractmethod
     def update(self, obj: object) -> None:
@@ -67,11 +63,22 @@ class Repository(ABC):
 
         pass
 
+
     @abstractmethod
-    def delete(self, id: str) -> None:
+    def delete(self, id: int) -> None:
 
         """
         Абстрактный метод удаления записи из таблицы.
+        """
+
+        pass
+    
+
+    @abstractmethod
+    def exists(self, id: int) -> bool:
+
+        """
+        Абстрактный метод проверки наличия записи в таблице.
         """
 
         pass

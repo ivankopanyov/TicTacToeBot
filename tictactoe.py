@@ -1,4 +1,3 @@
-from pickle import EMPTY_DICT
 from random import randint
 
 
@@ -56,7 +55,7 @@ class TicTacToe:
     Игра продолжается.
     """
 
-    __id: str
+    __id: int
 
     """
     Идентификатор игры.
@@ -92,7 +91,7 @@ class TicTacToe:
     Колличество клеток для победы.
     """
 
-    def __init__(self, id: str, field: list[str] | None = None, sign: str | None = None, side: int = 3) -> None:
+    def __init__(self, id: int, field: list[str] | None = None, sign: str | None = None, side: int = 3) -> None:
 
         """
         Инициализация объекта класса игры.
@@ -140,7 +139,7 @@ class TicTacToe:
             self.__sign = sign
 
 
-    def get_id(self) -> str:
+    def get_id(self) -> int:
 
         """
         Метод, возвращающий идентификатор игры.
