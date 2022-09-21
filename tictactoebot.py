@@ -116,6 +116,8 @@ class TicTacToeBot(Bot):
         id = update.effective_user.id
         name = update.effective_user.first_name
         user = self.__users_controller.get(id)
+        if user == None:
+            user = self.__users_controller.add(id)
 
         self.__tictactoe_controller.delete(id)
         tictactoe = self.__tictactoe_controller.new(id, user.get_field_size(), user.get_win_line())
@@ -135,8 +137,13 @@ class TicTacToeBot(Bot):
 
         id = update.effective_user.id
         name = update.effective_user.first_name
+        user = self.__users_controller.get(id)
+        if user == None:
+            user = self.__users_controller.add(id)
 
         tictactoe = self.__tictactoe_controller.get(id)
+        if tictactoe is None:
+            tictactoe = self.__tictactoe_controller.new(id, user.get_field_size(), user.get_win_line())
         message, keyboard = self.__game_menu(tictactoe, name)
 
         self.__users_controller.set_menu_id(id, 0)
@@ -151,6 +158,9 @@ class TicTacToeBot(Bot):
         """
         id = update.effective_user.id
         name = update.effective_user.first_name
+        user = self.__users_controller.get(id)
+        if user == None:
+            user = self.__users_controller.add(id)
         message, keyboard = self.__field_size_menu(name)
 
         self.__users_controller.set_menu_id(id, 1)
@@ -167,6 +177,8 @@ class TicTacToeBot(Bot):
         id = update.effective_user.id
         name = update.effective_user.first_name
         user = self.__users_controller.get(id)
+        if user == None:
+            user = self.__users_controller.add(id)
         nums = list(map(int, update.message.text.split(' x ')))
 
         if nums[0] != nums[1]:
@@ -186,6 +198,8 @@ class TicTacToeBot(Bot):
 
             if nums[0] == 3:
                 tictactoe = self.__tictactoe_controller.get(id)
+                if tictactoe is None:
+                    tictactoe = self.__tictactoe_controller.new(id, user.get_field_size(), user.get_win_line())
                 mes, keyboard = self.__game_menu(tictactoe, name)
             else:
                 mes, keyboard = self.__win_line_menu(name, nums[0])
@@ -205,11 +219,13 @@ class TicTacToeBot(Bot):
         id = update.effective_user.id
         name = update.effective_user.first_name
         user = self.__users_controller.get(id)
+        if user == None:
+            user = self.__users_controller.add(id)
         num = int(update.message.text)
         size = user.get_field_size()
 
         if user.get_menu_id() != 2:
-            message, keyboard = self.__error_handle(user.get_menu_id(), name)
+            message, keyboard = self.__error_handle(user, name)
         elif num > size:
             message = 'Неизвестная команда! '
             mes, keyboard = self.__win_line_menu(name, size)
@@ -218,6 +234,8 @@ class TicTacToeBot(Bot):
             self.__users_controller.set_win_line(id, num)
             message = f"Настройки сохранены!\nРазмер игрового поля: {size} x {size}\nКолличество клеток для победы: {num}\n\n"
             tictactoe = self.__tictactoe_controller.get(id)
+            if tictactoe is None:
+                tictactoe = self.__tictactoe_controller.new(id, user.get_field_size(), user.get_win_line())
             self.__users_controller.set_menu_id(id, 0)
             mes, keyboard = self.__game_menu(tictactoe, name)
             message += mes
@@ -234,9 +252,11 @@ class TicTacToeBot(Bot):
         id = update.effective_user.id
         name = update.effective_chat.first_name
         user = self.__users_controller.get(id)
+        if user == None:
+            user = self.__users_controller.add(id)
 
         if user.get_menu_id() != 0:
-            message, keyboard = self.__error_handle(user.get_menu_id(), name)
+            message, keyboard = self.__error_handle(user, name)
         else:
             tictactoe, state = self.__tictactoe_controller.move(id, self.__mini_int_to_int(update.message.text))
 
@@ -267,7 +287,9 @@ class TicTacToeBot(Bot):
         id = update.effective_user.id
         name = update.effective_user.first_name
         user = self.__users_controller.get(id)
-        message, keyboard = self.__error_handle(user.get_menu_id(), name)
+        if user == None:
+            user = self.__users_controller.add(id)
+        message, keyboard = self.__error_handle(user, name)
         await update.message.reply_text(message, reply_markup=keyboard)
 
     
@@ -307,16 +329,20 @@ class TicTacToeBot(Bot):
         return(message, keyboard)
 
     
-    def __error_handle(self, menu_id: int, name: str) -> tuple[str, ReplyKeyboardMarkup]:
+    def __error_handle(self, user: User, name: str) -> tuple[str, ReplyKeyboardMarkup]:
 
         """
         Метод обработки неизвестных команд.
         """
 
+        id = user.get_id()
         message = "Неизвестная команда! "
+        menu_id = user.get_menu_id()
 
         if menu_id == 0:
             tictactoe = self.__tictactoe_controller.get(id)
+            if tictactoe is None:
+                tictactoe = self.__tictactoe_controller.new(id, user.get_field_size(), user.get_win_line())
             mes, keyboard = self.__game_menu(tictactoe, name)
         elif menu_id == 1:
             mes, keyboard = self.__field_size_menu(name)
