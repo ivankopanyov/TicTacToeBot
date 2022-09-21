@@ -258,7 +258,13 @@ class TicTacToeBot(Bot):
         if user.get_menu_id() != 0:
             message, keyboard = self.__error_handle(user, name)
         else:
-            tictactoe, state = self.__tictactoe_controller.move(id, self.__mini_int_to_int(update.message.text))
+
+            result = self.__tictactoe_controller.move(id, self.__mini_int_to_int(update.message.text))
+            if result is None:
+                tictactoe = self.__tictactoe_controller.new(id, user.get_field_size(), user.get_win_line())
+                state = TicTacToe.NONE
+            else:
+                tictactoe, state = result
 
             if state == TicTacToe.WIN:
                 message = f'{self.__get_name("", name)}Вы победили! Поздравляем! Начните новую игру!'
