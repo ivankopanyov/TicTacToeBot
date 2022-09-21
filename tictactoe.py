@@ -73,7 +73,7 @@ class TicTacToe:
     Символ игрока.
     """
 
-    __side: int
+    __field_size: int
 
     """
     Длина стороны игрового поля
@@ -85,50 +85,52 @@ class TicTacToe:
     Список, хранящий линии для проверки окончания игры.
     """
 
-    __win_line: int = 3
+    __win_line: int
 
     """
     Колличество клеток для победы.
     """
 
-    def __init__(self, id: int, field: list[str] | None = None, sign: str | None = None, side: int = 3) -> None:
+    def __init__(self, 
+                id: int, 
+                field: list[str] = None, 
+                sign: str = None, 
+                field_size: int = 3, 
+                win_line: int = 3) -> None:
 
         """
         Инициализация объекта класса игры.
         """
 
         self.__id = id
-        self.__field = field if not field is None else [TicTacToe.EMPTY] * side * side
-        self.__side = int(len(self.__field) ** 0.5)
+        self.__field = field if not field is None else [TicTacToe.EMPTY] * field_size * field_size
+        self.__field_size = int(len(self.__field) ** 0.5)
 
-        if self.__win_line < 3:
-            self.__win_line = 3
-        elif self.__win_line > self.__side:
-            self.__win_line = self.__side
+        self.__win_line = win_line
         
         self.__lines = []
 
-        for i in range(0, len(self.__field), self.__side):
-            self.__lines.append(list(range(i, i + self.__side)))
+        for i in range(0, len(self.__field), self.__field_size):
+            self.__lines.append(list(range(i, i + self.__field_size)))
 
-        for i in range(0, self.__side):
-            self.__lines.append(list(range(i, len(self.__field), self.__side)))
+        for i in range(0, self.__field_size):
+            self.__lines.append(list(range(i, len(self.__field), self.__field_size)))
 
-        starts = [i for i in range(self.__side - self.__win_line + 1)]
+        starts = [i for i in range(self.__field_size - self.__win_line + 1)]
         for i in range(len(starts)):
-            self.__lines.append([j for j in range(starts[i], len(self.__field), self.__side + 1)][0:self.__side - i])
+            self.__lines.append([j for j in range(starts[i], len(self.__field), self.__field_size + 1)][0:self.__field_size - i])
             
-        starts = [i for i in list(range(self.__side, len(self.__field), self.__side))[0:self.__side - self.__win_line]]
+        starts = [i for i in list(range(self.__field_size, len(self.__field), self.__field_size))[0:self.__field_size - self.__win_line]]
         for i in range(len(starts)):
-            self.__lines.append([j for j in range(starts[i], len(self.__field), self.__side + 1)][0:self.__side - i])
+            self.__lines.append([j for j in range(starts[i], len(self.__field), self.__field_size + 1)][0:self.__field_size - i])
             
-        starts = [i for i in range(self.__win_line - 1, self.__side)]
+        starts = [i for i in range(self.__win_line - 1, self.__field_size)]
         for i in range(len(starts)):
-            self.__lines.append([j for j in range(starts[i], len(self.__field), self.__side - 1)][0:self.__side + i - (self.__side - self.__win_line)])
+            self.__lines.append([j for j in range(starts[i], len(self.__field), self.__field_size - 1)][0:self.__field_size + i - (self.__field_size - self.__win_line)])
 
-        starts = [i for i in list(range(self.__side - 1, len(self.__field), self.__side))[1:self.__side - (self.__win_line - 1)]]
+        starts = [i for i in list(range(self.__field_size - 1, len(self.__field), self.__field_size))[1:self.__field_size - (self.__win_line - 1)]]
         for i in range(len(starts)):
-            self.__lines.append([j for j in range(starts[i], len(self.__field), self.__side - 1)][0:self.__side - i])
+            self.__lines.append([j for j in range(starts[i], len(self.__field), self.__field_size - 1)][0:self.__field_size - i])
             
         
         if sign is None:
@@ -157,14 +159,13 @@ class TicTacToe:
         return self.__field.copy()
 
 
-    def get_state(self) -> str:
+    def is_active(self) -> bool:
 
         """
-        Метод, возвращающий состояние игры.
+        Проверка состояния игры. Возвращает False, если игра завершена.
         """
 
-        result = self.__check()
-        return TicTacToe.STOP if result != TicTacToe.NONE else TicTacToe.NONE
+        return self.__check() == TicTacToe.NONE
 
 
     def get_sign(self) -> str:
@@ -174,9 +175,17 @@ class TicTacToe:
         """
 
         return self.__sign
+
+    def get_win_line(self) -> int:
+
+        """
+        Метод, возвращающий колличество клеток для победы.
+        """
+
+        return self.__win_line
         
 
-    def move(self, index: int) -> tuple([list[str], str]):
+    def move(self, index: int) -> str:
 
         """
         Метод хода игрока.
@@ -184,26 +193,26 @@ class TicTacToe:
 
         result = self.__check()
         if result != TicTacToe.NONE:
-            return (self.__field, TicTacToe.STOP)
+            return TicTacToe.STOP
 
         if not index in range(len(self.__field)) or self.__field[index] != TicTacToe.EMPTY:
-            return (self.__field, TicTacToe.NONE)
+            return TicTacToe.NONE
 
         self.__field[index] = self.__sign
         result = self.__check()
         if result == TicTacToe.DRAW:
-            return (self.__field, result)
+            return result
         elif result == TicTacToe.STOP:
-            return (self.__field, TicTacToe.WIN)
+            return TicTacToe.WIN
 
         self.__bot_move()
         result = self.__check()
         if result == TicTacToe.DRAW:
             return (self.__field, result)
         elif result == TicTacToe.STOP:
-            return (self.__field, TicTacToe.LOSE)
+            return TicTacToe.LOSE
 
-        return (self.__field, TicTacToe.NONE)
+        return TicTacToe.NONE
 
 
     def __bot_move(self) -> None:

@@ -24,6 +24,7 @@ class Bot(ABC):
         self._app = ApplicationBuilder().token(token).build()
         self._add_handlers()
 
+
     @abstractmethod
     def _add_handlers(self) -> None:
 
@@ -32,6 +33,7 @@ class Bot(ABC):
         """
 
         pass
+    
     
     def start(self) -> None:
 

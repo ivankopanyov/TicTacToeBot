@@ -21,11 +21,18 @@ class DataBase:
 
         self.__db_name = db_name
 
-    def connect(self) -> sqlite3.Cursor:
+
+    def execute(self, sql: str, parameters: list[object] = []):
 
         """
-        Метод подключения к базе данных.
+        Метод запроса к базе данных.
         """
 
         con = sqlite3.connect(self.__db_name)
-        return con.cursor()
+        cursor = con.cursor()
+        exec = cursor.execute(sql, tuple(parameters))
+        result = exec.fetchone()
+        con.commit()
+        con.close()
+        return result
+

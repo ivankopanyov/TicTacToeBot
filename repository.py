@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from sqlite3 import Cursor
+
+from db import DataBase
 
 
 class Repository(ABC):
@@ -8,19 +9,19 @@ class Repository(ABC):
     Абстрактный класс, описывающий репозиторий.
     """
     
-    _cursor: Cursor
+    _db: DataBase
 
     """
-    Объект курсора модуля sqlite3.
+    
     """
 
-    def __init__(self, cursor: Cursor) -> None:
+    def __init__(self, db: DataBase) -> None:
 
         """
         Инициализация объекта репозитория.
         """
 
-        self._cursor = cursor
+        self._db = db
         self._create_table()
 
 
@@ -45,7 +46,7 @@ class Repository(ABC):
 
 
     @abstractmethod
-    def read(self, id: int) -> object | None:
+    def read(self, id: int) -> object:
 
         """
         Абстрактный метод чтения записи в таблицы.

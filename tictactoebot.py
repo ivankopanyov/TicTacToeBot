@@ -2,6 +2,7 @@ from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import CommandHandler, ContextTypes, MessageHandler, filters
 
 from bot import Bot
+from user import User
 from tictactoe import TicTacToe
 from tictactoecontroller import TicTacToeController
 from userscontroller import UsersController
@@ -61,11 +62,22 @@ class TicTacToeBot(Bot):
         Метод добавления обработчиков сообщений.
         """
 
-        self._app.add_handler(MessageHandler(filters.Regex(r'^[' + TicTacToeBot.NUMBERS + r']{1,}$'), self.__move))
-        self._app.add_handler(MessageHandler(filters.Regex(r'^Новая игра$'), self.__reset))
-        self._app.add_handler(MessageHandler(filters.Regex(r'^[345]{1} x [345]{1}$'), self.__new))
         self._app.add_handler(CommandHandler('start', self.__start))
-        self._app.add_handler(CommandHandler('new', self.__reset))
+
+        self._app.add_handler(MessageHandler(filters.Regex(r'^Новая игра$'), self.__new))
+        self._app.add_handler(CommandHandler('new', self.__new))
+
+        self._app.add_handler(MessageHandler(filters.Regex(r'^Вернуться к игре$'), self.__back))
+
+        self._app.add_handler(MessageHandler(filters.Regex(r'^Настройки$'), self.__field_size))
+        self._app.add_handler(CommandHandler('settings', self.__field_size))
+        
+        self._app.add_handler(MessageHandler(filters.Regex(r'^[345]{1} x [345]{1}$'), self.__win_line))
+        
+        self._app.add_handler(MessageHandler(filters.Regex(r'^[345]{1}$'), self.__save_settings))
+        
+        self._app.add_handler(MessageHandler(filters.Regex(r'^[' + TicTacToeBot.NUMBERS + r']{1,}$'), self.__move))
+        
         self._app.add_handler(MessageHandler(filters.ALL, self.__error))
 
 
@@ -79,61 +91,138 @@ class TicTacToeBot(Bot):
         name = update.effective_user.first_name
 
         if not self.__users_controller.exists(id):
-            message = f'{name}, добро пожаловать! '
-            self.__users_controller.add(id)
+            message = f'{self.__get_name("Д", name)}обро пожаловать! '
+            user = self.__users_controller.add(id)
         else:
-            message = f'{name}, с возвращением! '
+            message = f'{self.__get_name("С", name)} возвращением! '
+            self.__users_controller.set_menu_id(id, 0)
+            user = self.__users_controller.get(id)
 
-        field = self.__tictactoe_controller.get(id)
-        state = None if field == None else field[1]
+        tictactoe = self.__tictactoe_controller.get(id)
+        if tictactoe is None:
+            tictactoe = self.__tictactoe_controller.new(id, user.get_field_size(), user.get_win_line())
 
-        if state == None:
-            message += f'Выберите размер поля!'
-            reply_markup = self.__get_size_keyboard()
-        elif state == TicTacToe.STOP:
-            message += 'Эта игра завершилась! Начните новую игру!'
-            reply_markup = self.__get_keyboard(field[0])
-        else:
-            message += f'Сейчас ваш ход! Вы ходите {self.__tictactoe_controller.get_sign(id)}!'
-            reply_markup = self.__get_keyboard(field[0])
-            
-        await update.message.reply_text(message, reply_markup=reply_markup)
+        mes, keyboard = self.__game_menu(tictactoe.get_field(), None, tictactoe.get_sign(), tictactoe.get_win_line())
 
-
-    async def __reset(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-
-        """
-        Метод обработки команды запуска новой игры.
-        """
-
-        id = update.effective_user.id
-        self.__tictactoe_controller.delete(id)
-        name = update.effective_user.first_name
-        message = f'{self.__get_name(name, "в")}ыберите размер поля!'
-        reply_markup = self.__get_size_keyboard()
-        await update.message.reply_text(message, reply_markup=reply_markup)
+        await update.message.reply_text(message + mes, reply_markup=keyboard)
 
 
     async def __new(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
         """
-        Метод обработки команды выбора размера игрового поля.
+        Метод обработки команды создания новой игры.
         """
 
         id = update.effective_user.id
         name = update.effective_user.first_name
+        user = self.__users_controller.get(id)
+
+        self.__tictactoe_controller.delete(id)
+        tictactoe = self.__tictactoe_controller.new(id, user.get_field_size(), user.get_win_line())
+
+        self.__users_controller.set_menu_id(id, 0)
+
+        message, keyboard = self.__game_menu(tictactoe, name)
+
+        await update.message.reply_text(message, reply_markup=keyboard)
+
+
+    async def __back(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+
+        """
+        Метод обработки команды возврата к игре.
+        """
+
+        id = update.effective_user.id
+        name = update.effective_user.first_name
+
+        tictactoe = self.__tictactoe_controller.get(id)
+        message, keyboard = self.__game_menu(tictactoe, name)
+
+        self.__users_controller.set_menu_id(id, 0)
+
+        await update.message.reply_text(message, reply_markup=keyboard)
+
+    
+    async def __field_size(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+
+        """
+        Метод обработки команды изменения размера игрового поля.
+        """
+        id = update.effective_user.id
+        name = update.effective_user.first_name
+        message, keyboard = self.__field_size_menu(name)
+
+        self.__users_controller.set_menu_id(id, 1)
+
+        await update.message.reply_text(message, reply_markup=keyboard)
+
+
+    async def __win_line(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+
+        """
+        Метод обработки команды изменения колличества клеток для победы.
+        """
+        
+        id = update.effective_user.id
+        name = update.effective_user.first_name
+        user = self.__users_controller.get(id)
         nums = list(map(int, update.message.text.split(' x ')))
 
         if nums[0] != nums[1]:
-            message = f'Неизвестная команда! {self.__get_name(name, "в")}ыберите размер поля!'
-            reply_markup = self.__get_size_keyboard()
+            message = 'Неизвестная команда! '
+            mes, keyboard = self.__field_size_menu(name)
+            message += mes
         else:
-            field = self.__tictactoe_controller.new(id, nums[0])
-            sign = self.__tictactoe_controller.get_sign(id)
-            message = f'{self.__get_name(name, "с")}ейчас Ваш ход! Вы ходите {sign}!'
-            reply_markup = self.__get_keyboard(field)
+            self.__users_controller.set_field_size(id, nums[0])
 
-        await update.message.reply_text(message, reply_markup=reply_markup)
+            win_line = user.get_win_line()
+
+            if win_line > nums[0]:
+                self.__users_controller.set_win_line(id, nums[0])
+                win_line = nums[0]
+
+            message = f"Настройки сохранены!\nРазмер игрового поля: {nums[0]} x {nums[0]}\nКолличество клеток для победы: {win_line}\n\n"
+
+            if nums[0] == 3:
+                tictactoe = self.__tictactoe_controller.get(id)
+                mes, keyboard = self.__game_menu(tictactoe, name)
+            else:
+                mes, keyboard = self.__win_line_menu(name, nums[0])
+                self.__users_controller.set_menu_id(id, 2)
+
+            message += mes
+
+        await update.message.reply_text(message, reply_markup=keyboard)
+
+    
+    async def __save_settings(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+
+        """
+        Метод возврата к текущей игре.
+        """
+
+        id = update.effective_user.id
+        name = update.effective_user.first_name
+        user = self.__users_controller.get(id)
+        num = int(update.message.text)
+        size = user.get_field_size()
+
+        if user.get_menu_id() != 2:
+            message, keyboard = self.__error_handle(user.get_menu_id(), name)
+        elif num > size:
+            message = 'Неизвестная команда! '
+            mes, keyboard = self.__win_line_menu(name, size)
+            message += mes
+        else:
+            self.__users_controller.set_win_line(id, num)
+            message = f"Настройки сохранены!\nРазмер игрового поля: {size} x {size}\nКолличество клеток для победы: {num}\n\n"
+            tictactoe = self.__tictactoe_controller.get(id)
+            self.__users_controller.set_menu_id(id, 0)
+            mes, keyboard = self.__game_menu(tictactoe, name)
+            message += mes
+
+        await update.message.reply_text(message, reply_markup=keyboard)
 
 
     async def __move(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -144,31 +233,29 @@ class TicTacToeBot(Bot):
 
         id = update.effective_user.id
         name = update.effective_chat.first_name
-        field = self.__tictactoe_controller.get(id)
+        user = self.__users_controller.get(id)
 
-        if field == None:
-            message = f'Неизвестная команда! {self.__get_name(name, "в")}ыберите размер поля!'
-            reply_markup = self.__get_size_keyboard()
+        if user.get_menu_id() != 0:
+            message, keyboard = self.__error_handle(user.get_menu_id(), name)
         else:
-            result = self.__tictactoe_controller.move(id, self.__mini_int_to_int(update.message.text))
-            state = result[1]
+            tictactoe, state = self.__tictactoe_controller.move(id, self.__mini_int_to_int(update.message.text))
 
             if state == TicTacToe.WIN:
-                message = f'{self.__get_name(name, "")}Вы победили! Поздравляем! Начните новую игру!'
+                message = f'{self.__get_name("", name)}Вы победили! Поздравляем! Начните новую игру!'
             elif state == TicTacToe.LOSE:
-                message = f'{self.__get_name(name, "к")} сожалению, Вы проиграли! Попробуйте еще раз!'
+                message = f'{self.__get_name("к", name)} сожалению, Вы проиграли! Попробуйте еще раз!'
             elif state == TicTacToe.DRAW:
-                message = f'{self.__get_name(name, "")}Вы сыграли в ничью! Попробуйте еще раз!'
+                message = f'{self.__get_name("", name)}Вы сыграли в ничью! Попробуйте еще раз!'
             elif state == TicTacToe.STOP:
-                message = f'{self.__get_name(name, "э")}та игра завершилась! Начните новую игру!'
+                message = f'{self.__get_name("э", name)}та игра завершилась! Начните новую игру!'
             else:
                 name = update.effective_user.first_name
                 sign = self.__tictactoe_controller.get_sign(id)
-                message = f'{self.__get_name(name, "с")}ейчас ваш ход! Вы ходите {sign}!'
+                message = f'{self.__get_name("с", name)}ейчас ваш ход! Вы ходите {sign}!'
 
-            reply_markup = self.__get_keyboard(result[0])
+            keyboard = self.__get_keyboard_game(tictactoe.get_field())
 
-        await update.message.reply_text(message, reply_markup=reply_markup)
+        await update.message.reply_text(message, reply_markup=keyboard)
 
 
     async def __error(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -179,48 +266,81 @@ class TicTacToeBot(Bot):
 
         id = update.effective_user.id
         name = update.effective_user.first_name
+        user = self.__users_controller.get(id)
+        message, keyboard = self.__error_handle(user.get_menu_id(), name)
+        await update.message.reply_text(message, reply_markup=keyboard)
 
-        field = self.__tictactoe_controller.get(id)
-        state = None if field == None else field[1]
+    
+    def __game_menu(self, tictactoe: TicTacToe, name: str) -> tuple[str, ReplyKeyboardMarkup]:
+
+        """
+        Метод, возвращающий игровое меню.
+        """
+
+        if tictactoe.is_active():
+            message = f'{self.__get_name("С", name)}ейчас Ваш ход! Вы ходите {tictactoe.get_sign()}! Колличество клеток для победы:  {tictactoe.get_win_line()}'
+        else:
+            message = f'{self.__get_name("э", name)}та игра завершилась! Начните новую игру!'
+        return(message, self.__get_keyboard_game(tictactoe.get_field()))
+
+
+    def __field_size_menu(self, name: str) -> tuple[str, ReplyKeyboardMarkup]:
+
+        """
+        Метод, возвращающий меню для выбора размера игрового поля.
+        """
+
+        message = f'{self.__get_name("В", name)}ыберите размер игрового поля!'
+        keyboard = ReplyKeyboardMarkup([['3 x 3', '4 x 4', '5 x 5'], ['Вернуться к игре']], resize_keyboard=True)
+        return(message, keyboard)
+        
+
+    def __win_line_menu(self, name: str, field_size: int) -> tuple[str, ReplyKeyboardMarkup]:
+
+        """
+        Метод, возвращающий меню для выбора колличества клеток для победы.
+        """
+
+        message = f'{self.__get_name("В", name)}ыберите колличество клеток для победы!'
+        
+        keyboard = ReplyKeyboardMarkup([list(map(str, [i for i in range(3, field_size + 1)])), ['Вернуться к игре']], resize_keyboard=True)
+        return(message, keyboard)
+
+    
+    def __error_handle(self, menu_id: int, name: str) -> tuple[str, ReplyKeyboardMarkup]:
+
+        """
+        Метод обработки неизвестных команд.
+        """
 
         message = "Неизвестная команда! "
 
-        if state == None:
-            message = f'Неизвестная команда! {self.__get_name(name, "в")}ыберите размер поля!'
-            reply_markup = self.__get_size_keyboard()
-        elif state == TicTacToe.STOP:
-            message += f'{self.__get_name(name, "э")}та игра завершилась! Начните новую игру!'
-            reply_markup = self.__get_keyboard(field[0])
+        if menu_id == 0:
+            tictactoe = self.__tictactoe_controller.get(id)
+            mes, keyboard = self.__game_menu(tictactoe, name)
+        elif menu_id == 1:
+            mes, keyboard = self.__field_size_menu(name)
         else:
-            message += f'{self.__get_name(name, "с")}ейчас ваш ход! Вы ходите {self.__tictactoe_controller.get_sign(id)}!'
-            reply_markup = self.__get_keyboard(field[0])
+            mes, keyboard = self.__win_line_menu(name)
 
-        reply_markup = self.__get_keyboard(field[0])
-        await update.message.reply_text(message, reply_markup=reply_markup)
+        message += mes
 
-
-    def __get_size_keyboard(self) -> ReplyKeyboardMarkup:
-
-        """
-        Метод создания клавиатуры выбора игрового поля.
-        """
-
-        return ReplyKeyboardMarkup([[f'{i} x {i}' for i in range(TicTacToeBot.MIN, TicTacToeBot.MAX + 1)]], resize_keyboard=True)
+        return(message, keyboard)
 
 
-    def __get_keyboard(self, field: list[str]) -> ReplyKeyboardMarkup:
+    def __get_keyboard_game(self, field: list[str]) -> ReplyKeyboardMarkup:
 
         """
-        Метод создания клавиатуры.
+        Метод, возвращающий клавиатуру для игры.
         """
 
         step = int(len(field) ** 0.5)
         temp = list(map(lambda i: self.__int_to_mini_int(i + 1) if field[i] == TicTacToe.EMPTY else field[i], range(len(field))))
         keyboard = [temp[i:i+step] for i in range(0, len(temp), step)]
-        keyboard.append(['Новая игра'])
+        keyboard.append(['Новая игра', 'Настройки'])
         return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
-
+    
     def __mini_int_to_int(self, value: str) -> int:
 
         """
@@ -239,12 +359,12 @@ class TicTacToeBot(Bot):
         return ''.join([TicTacToeBot.NUMBERS[int(i)] for i in str(value)])
 
 
-    def __get_name(self, name: str | None, start: str) -> str:
+    def __get_name(self, first_symbol: str, name: str = None) -> str:
 
         """
         Метод добакления имени пользователя в сообщение.
         """
 
-        startLower = "" if start == "" else start.lower()
-        startUpper = "" if start == "" else start.upper()
-        return f'{name}, {startLower}' if not name is None and len(name) > 0 else startUpper
+        symbol_lower = "" if first_symbol == "" else first_symbol.lower()
+        symbol_upper = "" if first_symbol == "" else first_symbol.upper()
+        return f'{name}, {symbol_lower}' if not name is None and len(name) > 0 else symbol_upper

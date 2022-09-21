@@ -15,7 +15,12 @@ class UsersRepository(Repository):
         Метод создания таблицы для хранения состаяния объектов пользователя.
         """
 
-        self._cursor.execute("""CREATE TABLE IF NOT EXISTS users (id INTEGER)""")
+        self._db.execute("""CREATE TABLE IF NOT EXISTS users (
+            id INTEGER,
+            menu_id INTEGER,
+            field_size INTEGER,
+            win_line INTEGER
+        )""")
 
 
     def create(self, user: User) -> None:
@@ -24,18 +29,18 @@ class UsersRepository(Repository):
         Метод создания новой записи состояния объекта пользователя в таблице.
         """
 
-        self._cursor.execute("""INSERT INTO users VALUES (?)""", (user.get_id(),))
+        self._db.execute("""INSERT INTO users VALUES (?, ?, ?, ?)""", \
+            (user.get_id(), user.get_menu_id(), user.get_field_size(), user.get_win_line()))
 
 
-    def read(self, id: int) -> User | None:
+    def read(self, id: int) -> User:
 
         """
         Метод чтения записи состояния объекта пользователя из таблицы.
         """
 
-        res = self._cursor.execute("""SELECT * FROM users WHERE id = ?""", (id,))
-        result = res.fetchone()
-        return None if result is None else User(result[0])
+        result = self._db.execute("""SELECT * FROM users WHERE id = ?""", (id,))
+        return None if result is None else User(*result)
 
 
     def update(self, user: User) -> None:
@@ -45,7 +50,14 @@ class UsersRepository(Repository):
         Не имеет имплементации.
         """
 
-        pass
+        id = user.get_id()
+        if not self.exists(id):
+            return
+        self._db.execute("""UPDATE users SET 
+            menu_id = ?,
+            field_size = ?,
+            win_line = ?
+        WHERE id = ?""", (user.get_menu_id(), user.get_field_size(), user.get_win_line(), user.get_id()))
 
 
     def delete(self, id: int) -> None:
@@ -64,5 +76,5 @@ class UsersRepository(Repository):
         Метод проверки наличия записи пользователя в таблице.
         """
 
-        res = self._cursor.execute("""SELECT * FROM users WHERE id = ?""", (id,))
-        return not res.fetchone() is None
+        result = self._db.execute("""SELECT id FROM users WHERE id = ?""", (id,))
+        return not result is None

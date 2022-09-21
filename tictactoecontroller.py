@@ -23,31 +23,28 @@ class TicTacToeController():
         self.__repository = repository
 
 
-    def new(self, id: int, size: int) -> list[str]:
+    def new(self, id: int, field_size: int, win_line: int) -> TicTacToe:
 
         """
         Метод создания новой игры.
         """
 
         self.__repository.delete(id)
-        tictactoe = TicTacToe(id, side = size)
+        tictactoe = TicTacToe(id, field_size=field_size, win_line=win_line)
         self.__repository.create(tictactoe)
-        return tictactoe.get_field()
+        return tictactoe
 
 
-    def get(self, id: int) -> tuple([list[str], str]):
+    def get(self, id: int) -> TicTacToe:
 
         """
-        Метод, возвращающий текущее состояние и поле игры.
+        Метод, возвращающий объект игры.
         """
 
-        tictactoe = self.__repository.read(id)
-        if tictactoe is None:
-            return None
-        return (tictactoe.get_field(), tictactoe.get_state())
+        return self.__repository.read(id)
 
 
-    def move(self, id: int, index: int) -> tuple([list[str], str]):
+    def move(self, id: int, index: int) -> tuple[TicTacToe, str]:
 
         """
         Метод хода игрока.
@@ -58,10 +55,10 @@ class TicTacToeController():
             return None
         result = tictactoe.move(index - 1)
         self.__repository.update(tictactoe)
-        return result
+        return (tictactoe, result)
 
 
-    def get_sign(self, id: int) -> str | None:
+    def get_sign(self, id: int) -> str:
 
         """
         Метод, возвращающий символ игрока.
