@@ -1,5 +1,6 @@
-from tictactoerepository import TicTacToeRepository
 from tictactoe import TicTacToe
+from tictactoerepository import TicTacToeRepository
+
 
 class TicTacToeController():
 
@@ -21,29 +22,29 @@ class TicTacToeController():
 
         self.__repository = repository
 
-    def new(self, id: str) -> list[str]:
+
+    def new(self, id: int, field_size: int, win_line: int) -> TicTacToe:
 
         """
         Метод создания новой игры.
         """
 
         self.__repository.delete(id)
-        tictactoe = TicTacToe(id)
+        tictactoe = TicTacToe(id, field_size=field_size, win_line=win_line)
         self.__repository.create(tictactoe)
-        return tictactoe.get_field()
+        return tictactoe
 
-    def get(self, id: str) -> tuple([list[str], str]):
+
+    def get(self, id: int) -> TicTacToe:
 
         """
-        Метод, возвращающий текущее состояние и поле игры.
+        Метод, возвращающий объект игры.
         """
 
-        tictactoe = self.__repository.read(id)
-        if tictactoe is None:
-            return (self.new(id), TicTacToe.NONE)
-        return (tictactoe.get_field(), tictactoe.get_state())
+        return self.__repository.read(id)
 
-    def move(self, id: str, index: str) -> tuple([list[str], str]):
+
+    def move(self, id: int, index: int) -> tuple[TicTacToe, str]:
 
         """
         Метод хода игрока.
@@ -51,13 +52,13 @@ class TicTacToeController():
 
         tictactoe = self.__repository.read(id)
         if tictactoe is None:
-            return (self.new(id), TicTacToe.NONE)
-        index = TicTacToe.NUMBERS.index(index)
-        result = tictactoe.move(index)
+            return None
+        result = tictactoe.move(index - 1)
         self.__repository.update(tictactoe)
-        return result
+        return (tictactoe, result)
 
-    def get_sign(self, id: str) -> str | None:
+
+    def get_sign(self, id: int) -> str:
 
         """
         Метод, возвращающий символ игрока.
@@ -65,3 +66,13 @@ class TicTacToeController():
 
         tictactoe = self.__repository.read(id)
         return None if tictactoe is None else tictactoe.get_sign()
+
+
+    def delete(self, id: int) -> None:
+
+        """
+        Метод удаления игры.
+        """
+
+        self.__repository.delete(id)
+

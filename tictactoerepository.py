@@ -1,12 +1,27 @@
 from repository import Repository
 from tictactoe import TicTacToe
 
+
 class TicTacToeRepository(Repository):
 
     """
     Класс, описывающий объект репозитория для записи
     состояния объектов игр в таблицу.
     """
+
+    def _create_table(self) -> None:
+
+        """
+        Метод создания таблицы для хранения состаяния объектов игры.
+        """
+
+        self._db.execute("""CREATE TABLE IF NOT EXISTS games (
+            id INTEGER, 
+            field TEXT, 
+            sign TEXT, 
+            win_line INTEGER
+        )""")
+
 
     def create(self, tictactoe: TicTacToe) -> None:
 
@@ -15,20 +30,21 @@ class TicTacToeRepository(Repository):
         """
 
         field = ''.join(tictactoe.get_field())
-        self._cursor.execute(f"INSERT INTO {self._table} VALUES ('{tictactoe.get_id()}', '{field}', '{tictactoe.get_sign()}')")
+        self._db.execute("""INSERT INTO games VALUES (?, ?, ?, ?)""", (tictactoe.get_id(), field, tictactoe.get_sign(), tictactoe.get_win_line()))
 
-    def read(self, id: str) -> TicTacToe | None:
+
+    def read(self, id: int) -> TicTacToe:
 
         """
         Метод чтения записи состояния объекта игры из таблицы.
         """
 
-        res = self._cursor.execute(f"SELECT * FROM {self._table} WHERE id='{id}'")
-        result = res.fetchall()
-        if len(result) == 0:
+        result = self._db.execute("""SELECT * FROM games WHERE id = ?""", (id,))
+        if result is None:
             return None
-        field = list(result[0][1])
-        return TicTacToe(result[0][0], field, result[0][2])
+        field = list(result[1])
+        return TicTacToe(result[0], field, result[2])
+
 
     def update(self, tictactoe: TicTacToe) -> None:
 
@@ -37,15 +53,26 @@ class TicTacToeRepository(Repository):
         """
 
         id = tictactoe.get_id()
-        if self.read(id) == None:
+        if not self.exists(id):
             return
         field = ''.join(tictactoe.get_field())
-        self._cursor.execute(f"UPDATE {self._table} SET field='{field}', sign='{tictactoe.get_sign()}' WHERE id='{tictactoe.get_id()}'")
+        self._db.execute("""UPDATE games SET field = ? WHERE id = ?""", (field, tictactoe.get_id()))
 
-    def delete(self, id: str) -> None:
+
+    def delete(self, id: int) -> None:
 
         """
         Метод удаления записи состояния объекта игры из таблицы.
         """
 
-        self._cursor.execute(f"DELETE FROM {self._table} WHERE id='{id}'")
+        self._db.execute("""DELETE FROM games WHERE id = ?""", (id,))
+    
+
+    def exists(self, id: int) -> bool:
+
+        """
+        Метод проверки наличия записи игры в таблице.
+        """
+
+        result = self._db.execute("""SELECT * FROM games WHERE id = ?""", (id,))
+        return not result is None

@@ -1,5 +1,7 @@
-from telegram.ext import ApplicationBuilder, Application
 from abc import ABC, abstractmethod
+
+from telegram.ext import Application, ApplicationBuilder
+
 
 class Bot(ABC):
 
@@ -22,6 +24,7 @@ class Bot(ABC):
         self._app = ApplicationBuilder().token(token).build()
         self._add_handlers()
 
+
     @abstractmethod
     def _add_handlers(self) -> None:
 
@@ -30,6 +33,7 @@ class Bot(ABC):
         """
 
         pass
+    
     
     def start(self) -> None:
 
