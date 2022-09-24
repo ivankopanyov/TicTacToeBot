@@ -102,7 +102,7 @@ class TicTacToeBot(Bot):
         if tictactoe is None:
             tictactoe = self.__tictactoe_controller.new(id, user.get_field_size(), user.get_win_line())
 
-        mes, keyboard = self.__game_menu(tictactoe.get_field(), None, tictactoe.get_sign(), tictactoe.get_win_line())
+        mes, keyboard = self.__game_menu(tictactoe, None)
 
         await update.message.reply_text(message + mes, reply_markup=keyboard)
 
